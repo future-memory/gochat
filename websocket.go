@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"gochat/libs/define"
 	"gochat/libs/proto"
 	itime "gochat/libs/time"
@@ -30,7 +29,10 @@ func InitWebsocket(addrs []string) (err error) {
 		httpServeMux = http.NewServeMux()
 		server       *http.Server
 	)
-	httpServeMux.HandleFunc("/sub", ServeWebSocket)
+
+	log.Debug("init ws")
+
+	httpServeMux.HandleFunc("/live", ServeWebSocket)
 
 	for _, bind = range addrs {
 		if addr, err = net.ResolveTCPAddr("tcp4", bind); err != nil {
@@ -49,38 +51,6 @@ func InitWebsocket(addrs []string) (err error) {
 			if err = server.Serve(listener); err != nil {
 				log.Error("server.Serve(\"%s\") error(%v)", host, err)
 				panic(err)
-			}
-		}(bind)
-	}
-	return
-}
-
-func InitWebsocketWithTLS(addrs []string, cert, priv string) (err error) {
-	var (
-		httpServeMux = http.NewServeMux()
-	)
-	httpServeMux.HandleFunc("/sub", ServeWebSocket)
-	config := &tls.Config{}
-	config.Certificates = make([]tls.Certificate, 1)
-	if config.Certificates[0], err = tls.LoadX509KeyPair(cert, priv); err != nil {
-		return
-	}
-	for _, bind := range addrs {
-		server := &http.Server{Addr: bind, Handler: httpServeMux}
-		server.SetKeepAlivesEnabled(true)
-		if Debug {
-			log.Debug("start websocket wss listen: \"%s\"", bind)
-		}
-		go func(host string) {
-			ln, err := net.Listen("tcp", host)
-			if err != nil {
-				return
-			}
-
-			tlsListener := tls.NewListener(ln, config)
-			if err = server.Serve(tlsListener); err != nil {
-				log.Error("server.Serve(\"%s\") error(%v)", host, err)
-				return
 			}
 		}(bind)
 	}
@@ -118,12 +88,16 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
 	)
 	// handshake
+	log.Debug("kk %v", server.Options.HandshakeTimeout)
 	trd = tr.Add(server.Options.HandshakeTimeout, func() {
+		log.Debug("c  %v", server.Options.HandshakeTimeout)
 		conn.Close()
 	})
 	// must not setadv, only used in auth
 	if p, err = ch.CliProto.Set(); err == nil {
+		log.Debug("ff")
 		if key, ch.RoomId, hb, err = server.authWebsocket(conn, p); err == nil {
+			log.Debug("ee %v", hb)
 			b = server.Bucket(key)
 			err = b.Put(key, ch)
 		}
@@ -134,15 +108,20 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		log.Error("handshake failed error(%v)", err)
 		return
 	}
+	log.Debug("k %v", key);
 	trd.Key = key
 	tr.Set(trd, hb)
 	// hanshake ok start dispatch goroutine
 	go server.dispatchWebsocket(key, conn, ch)
+
+	//读取上报的信息，并广播或pong
 	for {
 		if p, err = ch.CliProto.Set(); err != nil {
+			log.Debug("a")
 			break
 		}
 		if err = p.ReadWebsocket(conn); err != nil {
+			log.Debug("b %v", err)
 			break
 		}
 		//p.Time = *globalNowTime
@@ -151,12 +130,16 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 			tr.Set(trd, hb)
 			p.Body = nil
 			p.Operation = define.OP_HEARTBEAT_REPLY
-		} else {
-			// process message
-			if err = server.operator.Operate(p); err != nil {
-				break
+		}
+		//信息 广播
+		if p.Operation == define.OP_SEND_SMS {
+			var bucket *Bucket
+			p.Operation = define.OP_SEND_SMS_REPLY;
+			for _, bucket = range DefaultServer.Buckets {
+				go bucket.Broadcast(p)
 			}
 		}
+
 		ch.CliProto.SetAdv()
 		ch.Signal()
 	}
@@ -165,9 +148,6 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	conn.Close()
 	ch.Close()
 	b.Del(key)
-	if err = server.operator.Disconnect(key, ch.RoomId); err != nil {
-		log.Error("key: %s operator do disconnect error(%v)", key, err)
-	}
 	if Debug {
 		log.Debug("key: %s server websocket goroutine exit", key)
 	}
@@ -233,15 +213,24 @@ failed:
 
 func (server *Server) authWebsocket(conn *websocket.Conn, p *proto.Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	if err = p.ReadWebsocket(conn); err != nil {
+		log.Debug("a e %v", err)
 		return
 	}
 	if p.Operation != define.OP_AUTH {
+		log.Debug("a a %v %v", p.Operation, define.OP_AUTH);
 		err = ErrOperation
 		return
 	}
-	if key, rid, heartbeat, err = server.operator.Connect(p); err != nil {
-		return
-	}
+
+	auther := NewDefaultAuther();
+
+	log.Debug("pbody:%v", string(p.Body));
+	var uid int64;
+	uid, rid = auther.Auth(string(p.Body))
+	var seq int32 = 1;
+	key = encode(uid, seq)
+	heartbeat = 5 * 60 * time.Second
+
 	p.Body = emptyJSONBody
 	p.Operation = define.OP_AUTH_REPLY
 	err = p.WriteWebsocket(conn)

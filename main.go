@@ -10,8 +10,9 @@ var (
 )
 
 func main() {
-	runtime.GOMAXPROCS(MAXPROC)
-	perf.Init(PPROFBIND)
+	maxproc := runtime.NumCPU()
+	runtime.GOMAXPROCS(maxproc)
+	perf.Init([]string(PPROFBIND))
 	// new server
 	buckets := make([]*Bucket, BUCKETNUM)
 	for i := 0; i < BUCKETNUM; i++ {
@@ -23,6 +24,7 @@ func main() {
 		})
 	}
 
+	timer := runtime.NumCPU()
 	round := NewRound(RoundOptions{
 		Reader:       TCPREADER,
 		ReadBuf:      TCPREADBUF,
@@ -30,12 +32,11 @@ func main() {
 		Writer:       TCPWRITER,
 		WriteBuf:     TCPWRITEBUF,
 		WriteBufSize: TCPWRITEBUFSIZE,
-		Timer:        TIMER,
+		Timer:        timer,
 		TimerSize:    TIMERSIZE,
 	})
 
-	operator := new(DefaultOperator)
-	DefaultServer = NewServer(buckets, round, operator, ServerOptions{
+	DefaultServer = NewServer(buckets, round, ServerOptions{
 		CliProto:         CLIPROTO,
 		SvrProto:         SVRPROTO,
 		HandshakeTimeout: HANDSHAKETIMEOUT,
@@ -45,7 +46,7 @@ func main() {
 	})
 
 	// websocket comet
-	if err := InitWebsocket(WEBSOCKETBIND); err != nil {
+	if err := InitWebsocket([]string(WEBSOCKETBIND)); err != nil {
 		panic(err)
 	}
 

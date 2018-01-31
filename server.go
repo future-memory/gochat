@@ -25,17 +25,15 @@ type Server struct {
 	Buckets   []*Bucket // subkey bucket
 	bucketIdx uint32
 	round     *Round // accept round store
-	operator  Operator
 	Options   ServerOptions
 }
 
 // NewServer returns a new Server.
-func NewServer(b []*Bucket, r *Round, o Operator, options ServerOptions) *Server {
+func NewServer(b []*Bucket, r *Round, options ServerOptions) *Server {
 	s := new(Server)
 	s.Buckets = b
 	s.bucketIdx = uint32(len(b))
 	s.round = r
-	s.operator = o
 	s.Options = options
 	return s
 }

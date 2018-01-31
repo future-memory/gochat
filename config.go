@@ -3,21 +3,15 @@
 package main
 
 import (
-	"runtime"
+	"time"
 )
 
-const (
-	WEBSOCKETBIND    = "0.0.0.0:8099"
-	PPROFBIND        = "localhost:2044"
-	STATBIND         = "localhost:2045"
-	
+const (	
 	WEBSOCKETTLSOPEN = false
 	
 	HANDSHAKETIMEOUT = 5 * time.Second
 	WRITETIMEOUT     = 5 * time.Second
 	
-	TIMER            = runtime.NumCPU()
-	MaxProc          = runtime.NumCPU()
 	TIMERSIZE        = 1000
 	
 	CLIPROTO         = 5
@@ -33,10 +27,9 @@ const (
 	ROUTINESIZE      = 20
 	
 	//tcp
-	TCPBIND          = "0.0.0.0:8080"
 	TCPSNDBUF        = 2048
 	TCPRCVBUF        = 256
-	TCPKEEPALIVE     = 0
+	TCPKEEPALIVE     = false
 	TCPREADER        = 1024
 	TCPREADBUF       = 1024
 	TCPREADBUFSIZE   = 512
@@ -48,4 +41,17 @@ const (
 	CliProto  = 5
 	SvrProto  = 80
 
+	SERVERID  = 1
+
+	Ver = "0.1"
+
+)
+
+var (
+	TCPBIND       = []string{"0.0.0.0:8080"}
+	WEBSOCKETBIND = []string{"0.0.0.0:8099"}
+	PPROFBIND     = []string{"localhost:2044"}
+	STATBIND      = []string{"localhost:2045"}
+
+	Debug         = false;
 )
