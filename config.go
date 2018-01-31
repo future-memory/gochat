@@ -20,7 +20,7 @@ const (
 	// bucket
 	BUCKETNUM        = 1024	
 	BUCKETCHANNEL    = 1024	
-	BUCKETROOM       = 1024
+	BUCKETROOM       = 10
 	
 	//goroutine
 	ROUTINEAMOUNT    = 128
@@ -45,6 +45,7 @@ const (
 
 	Ver = "0.1"
 
+	AUTHKEY = "test"
 )
 
 var (

@@ -225,10 +225,9 @@ func (server *Server) authWebsocket(conn *websocket.Conn, p *proto.Proto) (key s
 	auther := NewDefaultAuther();
 
 	log.Debug("pbody:%v", string(p.Body));
-	var uid int64;
+	var uid string;
 	uid, rid = auther.Auth(string(p.Body))
-	var seq int32 = 1;
-	key = encode(uid, seq)
+	key = encode(uid, rid);
 	heartbeat = 5 * 60 * time.Second
 
 	p.Body = emptyJSONBody

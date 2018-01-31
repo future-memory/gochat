@@ -24,4 +24,6 @@ var (
 	ErrRoomDroped = errors.New("room droped")
 	// rpc
 	ErrLogic = errors.New("logic rpc is not available")
+
+	ErrDecodeKey      = errors.New("decode key error")
 )
