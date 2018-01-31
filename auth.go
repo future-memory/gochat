@@ -2,10 +2,11 @@ package main
 
 import (
 	"gochat/libs/define"
-	"encoding/json"
+	"github.com/tidwall/gjson"
     "crypto/md5" 
     "encoding/hex"	
 	"time"
+	"strconv"
 	log "github.com/thinkboy/log4go"
 )
 
@@ -14,12 +15,6 @@ type Auther interface {
 	Auth(token string) (userId string, roomId int32)
 }
 
-type AuthCode struct {
-	userId string        `json:"uid"`
-	code   string        `json:"code"`
-	time   int64         `json:"time"`
-	roomId int32         `json:"id"`
-}
 
 type DefaultAuther struct {
 }
@@ -29,37 +24,29 @@ func NewDefaultAuther() *DefaultAuther {
 }
 
 func (a *DefaultAuther) Auth(token string) (userId string, roomId int32) {
-	var err error
-	tmp := AuthCode{}
-	log.Debug("token: %v", token)
+	userId = gjson.Get(token, "uid").String();
+	code  := gjson.Get(token, "code").String();
+	time1 := gjson.Get(token, "time").String();
+	tmpid := gjson.Get(token, "id").Int();
 
-	if err = json.Unmarshal([]byte(token), &tmp); err != nil {
-		userId = "0"
-		roomId = define.NoRoom
-		log.Debug("decode err: %v", err)
-		return
-	}
-
-	userId = tmp.userId;
-	roomId = tmp.roomId;
-
-	log.Debug("tmp: %v", tmp)
+	time2, _ := strconv.ParseInt(time1, 10, 64);
+	roomId = int32(tmpid);
 
 	//验证时间
 	t  := time.Now();
 	tt := t.Unix();
-	if(tt-tmp.time>60){
+	if(tt-time2>60){
 		userId = "0"
 		roomId = define.NoRoom
-		log.Debug("time err: %v, %v", tt, tmp.time)
+		log.Debug("time err: %v, %v", tt, time2)
 		return		
 	}
 
-	mc := Md5(AUTHKEY+userId+string(tmp.time));
-	if(mc!=tmp.code){
+	mc := Md5(AUTHKEY+userId+time1);
+	if(mc!=code){
 		userId = "0"
 		roomId = define.NoRoom
-		log.Debug("md5 err: %v, %v", mc, tmp.code)		
+		log.Debug("md5 err: %v, %v", mc, code)		
 	}
 	return
 }
