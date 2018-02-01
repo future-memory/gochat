@@ -7,6 +7,7 @@ import (
 
 var (
 	DefaultServer    *Server
+	DefaultSeq       *Sequence
 )
 
 func main() {
@@ -44,7 +45,8 @@ func main() {
 		TCPRcvbuf:        TCPRCVBUF,
 		TCPSndbuf:        TCPSNDBUF,
 	})
-
+	//序列
+	DefaultSeq = NewSequence();
 	// websocket comet
 	if err := InitWebsocket([]string(WEBSOCKETBIND)); err != nil {
 		panic(err)

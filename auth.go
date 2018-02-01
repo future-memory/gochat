@@ -1,7 +1,6 @@
 package main
 
 import (
-	"gochat/libs/define"
 	"github.com/tidwall/gjson"
     "crypto/md5" 
     "encoding/hex"	
@@ -14,7 +13,6 @@ import (
 type Auther interface {
 	Auth(token string) (userId string, roomId int32)
 }
-
 
 type DefaultAuther struct {
 }
@@ -36,24 +34,29 @@ func (a *DefaultAuther) Auth(token string) (userId string, roomId int32) {
 	t  := time.Now();
 	tt := t.Unix();
 	if(tt-time2>60){
-		userId = "0"
-		roomId = define.NoRoom
+		userId = guest();
 		log.Debug("time err: %v, %v", tt, time2)
 		return		
 	}
 
 	mc := Md5(AUTHKEY+userId+time1);
 	if(mc!=code){
-		userId = "0"
-		roomId = define.NoRoom
-		log.Debug("md5 err: %v, %v", mc, code)		
+		userId = guest();
+		log.Debug("md5 err: %v, %v", mc, code)
 	}
 	return
 }
 
-func Md5(str string) string {  
-    h := md5.New()  
-    h.Write([]byte(str))  
-    data := h.Sum([]byte(""))  
-    return hex.EncodeToString(data)  
-} 
+func guest() (userId string){
+	guestid := DefaultSeq.nextSeq();
+	log.Debug("guest id:  %v", guestid)
+	userId = "g_"+strconv.Itoa(int(guestid));
+	return
+}
+
+func Md5(str string) string {
+    h := md5.New()
+    h.Write([]byte(str))
+    data := h.Sum([]byte(""))
+    return hex.EncodeToString(data)
+}
