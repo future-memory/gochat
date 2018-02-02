@@ -2,8 +2,7 @@ package main
 
 import (
 	"gochat/libs/proto"
-
-	log "github.com/thinkboy/log4go"
+	"log"
 )
 
 type Ring struct {
@@ -52,7 +51,7 @@ func (r *Ring) Get() (proto *proto.Proto, err error) {
 func (r *Ring) GetAdv() {
 	r.rp++
 	if Debug {
-		log.Debug("ring rp: %d, idx: %d", r.rp, r.rp&r.mask)
+		log.Printf("ring rp: %d, idx: %d", r.rp, r.rp&r.mask)
 	}
 }
 
@@ -67,7 +66,7 @@ func (r *Ring) Set() (proto *proto.Proto, err error) {
 func (r *Ring) SetAdv() {
 	r.wp++
 	if Debug {
-		log.Debug("ring wp: %d, idx: %d", r.wp, r.wp&r.mask)
+		log.Printf("ring wp: %d, idx: %d", r.wp, r.wp&r.mask)
 	}
 }
 

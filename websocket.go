@@ -8,9 +8,8 @@ import (
 	"net"
 	"net/http"
 	"time"
-
 	"github.com/gorilla/websocket"
-	log "github.com/thinkboy/log4go"
+	"log"
 )
 
 var upgrader = websocket.Upgrader{
@@ -30,26 +29,24 @@ func InitWebsocket(addrs []string) (err error) {
 		server       *http.Server
 	)
 
-	log.Debug("init ws")
-
 	httpServeMux.HandleFunc("/live", ServeWebSocket)
 
 	for _, bind = range addrs {
 		if addr, err = net.ResolveTCPAddr("tcp4", bind); err != nil {
-			log.Error("net.ResolveTCPAddr(\"tcp4\", \"%s\") error(%v)", bind, err)
+			log.Printf("net.ResolveTCPAddr(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
 		}
 		if listener, err = net.ListenTCP("tcp4", addr); err != nil {
-			log.Error("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
+			log.Printf("net.ListenTCP(\"tcp4\", \"%s\") error(%v)", bind, err)
 			return
 		}
 		server = &http.Server{Handler: httpServeMux}
 		if Debug {
-			log.Debug("start websocket listen: \"%s\"", bind)
+			log.Printf("start websocket listen: \"%s\"", bind)
 		}
 		go func(host string) {
 			if err = server.Serve(listener); err != nil {
-				log.Error("server.Serve(\"%s\") error(%v)", host, err)
+				log.Printf("server.Serve(\"%s\") error(%v)", host, err)
 				panic(err)
 			}
 		}(bind)
@@ -64,7 +61,7 @@ func ServeWebSocket(w http.ResponseWriter, req *http.Request) {
 	}
 	ws, err := upgrader.Upgrade(w, req, nil)
 	if err != nil {
-		log.Error("Websocket Upgrade error(%v), userAgent(%s)", err, req.UserAgent())
+		log.Printf("Websocket Upgrade error(%v), userAgent(%s)", err, req.UserAgent())
 		return
 	}
 	defer ws.Close()
@@ -73,7 +70,9 @@ func ServeWebSocket(w http.ResponseWriter, req *http.Request) {
 		rAddr = ws.RemoteAddr()
 		tr    = DefaultServer.round.Timer(rand.Int())
 	)
-	log.Debug("start websocket serve \"%s\" with \"%s\"", lAddr, rAddr)
+	if Debug {
+		log.Printf("start websocket serve \"%s\" with \"%s\"", lAddr, rAddr)
+	}
 	DefaultServer.serveWebsocket(ws, tr)
 }
 
@@ -88,16 +87,12 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		ch  = NewChannel(server.Options.CliProto, server.Options.SvrProto, define.NoRoom)
 	)
 	// handshake
-	log.Debug("kk %v", server.Options.HandshakeTimeout)
 	trd = tr.Add(server.Options.HandshakeTimeout, func() {
-		log.Debug("c  %v", server.Options.HandshakeTimeout)
 		conn.Close()
 	})
 	// must not setadv, only used in auth
 	if p, err = ch.CliProto.Set(); err == nil {
-		log.Debug("ff")
 		if key, ch.RoomId, hb, err = server.authWebsocket(conn, p); err == nil {
-			log.Debug("ee %v", hb)
 			b = server.Bucket(key)
 			err = b.Put(key, ch)
 		}
@@ -105,10 +100,12 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	if err != nil {
 		conn.Close()
 		tr.Del(trd)
-		log.Error("handshake failed error(%v)", err)
+		log.Printf("handshake failed error(%v)", err)
 		return
 	}
-	log.Debug("k %v", key);
+	if Debug {
+		log.Printf("key %v", key);
+	}
 	trd.Key = key
 	tr.Set(trd, hb)
 	// hanshake ok start dispatch goroutine
@@ -117,11 +114,11 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 	//读取上报的信息，并广播或pong
 	for {
 		if p, err = ch.CliProto.Set(); err != nil {
-			log.Debug("a")
+			log.Printf("proto err %v", err)
 			break
 		}
 		if err = p.ReadWebsocket(conn); err != nil {
-			log.Debug("b %v", err)
+			log.Printf("read ws err %v", err)
 			break
 		}
 		//p.Time = *globalNowTime
@@ -143,13 +140,13 @@ func (server *Server) serveWebsocket(conn *websocket.Conn, tr *itime.Timer) {
 		ch.CliProto.SetAdv()
 		ch.Signal()
 	}
-	log.Error("key: %s server websocket failed error(%v)", key, err)
+	log.Printf("key: %s server websocket failed error(%v)", key, err)
 	tr.Del(trd)
 	conn.Close()
 	ch.Close()
 	b.Del(key)
 	if Debug {
-		log.Debug("key: %s server websocket goroutine exit", key)
+		log.Printf("key: %s server websocket goroutine exit", key)
 	}
 	return
 }
@@ -163,14 +160,14 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 		err error
 	)
 	if Debug {
-		log.Debug("key: %s start dispatch websocket goroutine", key)
+		log.Printf("key: %s start dispatch websocket goroutine", key)
 	}
 	for {
 		p = ch.Ready()
 		switch p {
 		case proto.ProtoFinish:
 			if Debug {
-				log.Debug("key: %s wakeup exit dispatch goroutine", key)
+				log.Printf("key: %s wakeup exit dispatch goroutine", key)
 			}
 			goto failed
 		case proto.ProtoReady:
@@ -195,7 +192,7 @@ func (server *Server) dispatchWebsocket(key string, conn *websocket.Conn, ch *Ch
 	}
 failed:
 	if err != nil {
-		log.Error("key: %s dispatch websocket error(%v)", key, err)
+		log.Printf("key: %s dispatch websocket error(%v)", key, err)
 	}
 	conn.Close()
 	// must ensure all channel message discard, for reader won't blocking Signal
@@ -206,25 +203,24 @@ failed:
 		p = ch.Ready()
 	}
 	if Debug {
-		log.Debug("key: %s dispatch goroutine exit", key)
+		log.Printf("key: %s dispatch goroutine exit", key)
 	}
 	return
 }
 
 func (server *Server) authWebsocket(conn *websocket.Conn, p *proto.Proto) (key string, rid int32, heartbeat time.Duration, err error) {
 	if err = p.ReadWebsocket(conn); err != nil {
-		log.Debug("a e %v", err)
+		log.Printf("read ws err %v", err)
 		return
 	}
 	if p.Operation != define.OP_AUTH {
-		log.Debug("a a %v %v", p.Operation, define.OP_AUTH);
+		log.Printf("auth op err %v %v", p.Operation, define.OP_AUTH);
 		err = ErrOperation
 		return
 	}
 
 	auther := NewDefaultAuther();
 
-	log.Debug("pbody:%v", string(p.Body));
 	var uid string;
 	uid, rid = auther.Auth(string(p.Body))
 	key = encode(uid, rid);

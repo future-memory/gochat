@@ -3,8 +3,6 @@ package main
 import (
 	"gochat/libs/hash/cityhash"
 	"time"
-
-	log "github.com/thinkboy/log4go"
 )
 
 var (
@@ -40,9 +38,5 @@ func NewServer(b []*Bucket, r *Round, options ServerOptions) *Server {
 
 func (server *Server) Bucket(subKey string) *Bucket {
 	idx := cityhash.CityHash32([]byte(subKey), uint32(len(subKey))) % server.bucketIdx;
-	log.Debug("ch %s bucket index: %d use cityhash", subKey, idx)
-	if Debug {
-		log.Debug("\"%s\" hit channel bucket index: %d use cityhash", subKey, idx)
-	}
 	return server.Buckets[idx]
 }

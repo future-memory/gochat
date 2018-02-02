@@ -6,7 +6,6 @@ import (
     "encoding/hex"	
 	"time"
 	"strconv"
-	log "github.com/thinkboy/log4go"
 )
 
 // developer could implement "Auth" interface for decide how get userId, or roomId
@@ -35,21 +34,18 @@ func (a *DefaultAuther) Auth(token string) (userId string, roomId int32) {
 	tt := t.Unix();
 	if(tt-time2>60){
 		userId = guest();
-		log.Debug("time err: %v, %v", tt, time2)
 		return		
 	}
 
 	mc := Md5(AUTHKEY+userId+time1);
 	if(mc!=code){
 		userId = guest();
-		log.Debug("md5 err: %v, %v", mc, code)
 	}
 	return
 }
 
 func guest() (userId string){
 	guestid := DefaultSeq.nextSeq();
-	log.Debug("guest id:  %v", guestid)
 	userId = "g_"+strconv.Itoa(int(guestid));
 	return
 }

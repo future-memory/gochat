@@ -1,7 +1,7 @@
 package time
 
 import (
-	log "github.com/thinkboy/log4go"
+	"log"
 	"testing"
 	"time"
 )
@@ -14,7 +14,7 @@ func TestTimer(t *testing.T) {
 	}
 	printTimer(timer)
 	for i := 0; i < 100; i++ {
-		log.Debug("td: %s, %s, %d", tds[i].Key, tds[i].ExpireString(), tds[i].index)
+		log.Printf("td: %s, %s, %d", tds[i].Key, tds[i].ExpireString(), tds[i].index)
 		timer.Del(tds[i])
 	}
 	printTimer(timer)
@@ -34,9 +34,9 @@ func TestTimer(t *testing.T) {
 }
 
 func printTimer(timer *Timer) {
-	log.Debug("----------timers: %d ----------", len(timer.timers))
+	log.Printf("----------timers: %d ----------", len(timer.timers))
 	for i := 0; i < len(timer.timers); i++ {
-		log.Debug("timer: %s, %s, index: %d", timer.timers[i].Key, timer.timers[i].ExpireString(), timer.timers[i].index)
+		log.Printf("timer: %s, %s, index: %d", timer.timers[i].Key, timer.timers[i].ExpireString(), timer.timers[i].index)
 	}
-	log.Debug("--------------------")
+	log.Printf("--------------------")
 }
