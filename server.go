@@ -14,15 +14,12 @@ type ServerOptions struct {
 	CliProto         int
 	SvrProto         int
 	HandshakeTimeout time.Duration
-	TCPKeepalive     bool
-	TCPRcvbuf        int
-	TCPSndbuf        int
 }
 
 type Server struct {
 	Buckets   []*Bucket // subkey bucket
-	bucketIdx uint32
 	round     *Round // accept round store
+	bucketIdx uint32
 	Options   ServerOptions
 }
 
@@ -30,8 +27,8 @@ type Server struct {
 func NewServer(b []*Bucket, r *Round, options ServerOptions) *Server {
 	s := new(Server)
 	s.Buckets = b
-	s.bucketIdx = uint32(len(b))
 	s.round = r
+	s.bucketIdx = uint32(len(b))
 	s.Options = options
 	return s
 }

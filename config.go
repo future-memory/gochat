@@ -6,11 +6,19 @@ import (
 	"time"
 )
 
-const (	
+var (
+	PPROFBIND = []string{"localhost:2045"}
+	WEBSOCKETBIND    = []string{"0.0.0.0:8099"}
+)
+
+const (
+	Debug            = true;
+
 	WEBSOCKETTLSOPEN = false
 	
 	HANDSHAKETIMEOUT = 5 * time.Second
 	WRITETIMEOUT     = 5 * time.Second
+	HEARTBEAT        = 60 * time.Second
 	
 	TIMERSIZE        = 1000
 	
@@ -18,41 +26,18 @@ const (
 	SVRPROTO         = 80
 	
 	// bucket
-	BUCKETNUM        = 1024	
-	BUCKETCHANNEL    = 1024	
-	BUCKETROOM       = 10
+	BUCKETNUM        = 512	
+	CHANNELSIZE      = 1024	
+	ROOMSIZE         = 10
 	
 	//goroutine
 	ROUTINEAMOUNT    = 128
 	ROUTINESIZE      = 20
 	
-	//tcp
-	TCPSNDBUF        = 2048
-	TCPRCVBUF        = 256
-	TCPKEEPALIVE     = false
-	TCPREADER        = 1024
-	TCPREADBUF       = 1024
-	TCPREADBUFSIZE   = 512
-	TCPWRITER        = 1024
-	TCPWRITEBUF      = 1024
-	TCPWRITEBUFSIZE  = 4096
+	AUTHKEY          = "e2a7edKLD31XkmgoMZBBS"
 
-	//proto
-	CliProto  = 5
-	SvrProto  = 80
+	REDISHOST        = "127.0.0.1:6379";
+	REDISDB          = 0;
+	REDISPWD         = "";
 
-	SERVERID  = 1
-
-	Ver = "0.1"
-
-	AUTHKEY = "test"
-)
-
-var (
-	TCPBIND       = []string{"0.0.0.0:8080"}
-	WEBSOCKETBIND = []string{"0.0.0.0:8099"}
-	PPROFBIND     = []string{"localhost:2044"}
-	STATBIND      = []string{"localhost:2045"}
-
-	Debug         = false;
 )

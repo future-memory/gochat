@@ -44,6 +44,10 @@ func (r *Ring) Get() (proto *proto.Proto, err error) {
 	if r.rp == r.wp {
 		return nil, ErrRingEmpty
 	}
+	if Debug {
+		log.Printf("get ring rp: %d, idx: %d", r.rp, r.rp&r.mask)
+	}
+
 	proto = &r.data[r.rp&r.mask]
 	return
 }
@@ -59,6 +63,10 @@ func (r *Ring) Set() (proto *proto.Proto, err error) {
 	if r.wp-r.rp >= r.num {
 		return nil, ErrRingFull
 	}
+	if Debug {
+		log.Printf("set ring rp: %d, idx: %d", r.rp, r.rp&r.mask)
+	}
+
 	proto = &r.data[r.wp&r.mask]
 	return
 }
@@ -73,6 +81,18 @@ func (r *Ring) SetAdv() {
 func (r *Ring) Reset() {
 	r.rp = 0
 	r.wp = 0
-	// prevent pad compiler optimization
-	// r.pad = [40]byte{}
 }
+
+func (r *Ring) LoopSet() (proto *proto.Proto) {
+	if r.wp-r.rp >= r.num {
+		r.wp = 0
+	}
+	
+	if Debug {
+		log.Printf("set ring rp: %d, idx: %d", r.rp, r.rp&r.mask)
+	}
+
+	proto = &r.data[r.wp&r.mask]
+	return
+}
+

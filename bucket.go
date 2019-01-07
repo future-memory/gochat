@@ -5,6 +5,8 @@ import (
 	"gochat/libs/proto"
 	"sync"
 	"sync/atomic"
+	//"log"
+	"encoding/json"
 )
 
 type BucketOptions struct {
@@ -103,6 +105,24 @@ func (b *Bucket) Broadcast(p *proto.Proto) {
 	b.cLock.RUnlock()
 }
 
+func (b *Bucket) BroadcastRedisMsg(op int32, msg json.RawMessage) {
+	var (
+		ch *Channel
+		p *proto.Proto;
+	);
+
+	//message := (json.RawMessage)(msg)
+	b.cLock.RLock()
+	for _, ch = range b.chs {
+		p = ch.CliProto.LoopSet();
+		p.Operation = op;
+		p.Body = msg;
+		ch.CliProto.SetAdv();
+		ch.Push(p);
+	}
+	b.cLock.RUnlock()
+}
+
 // Room get a room by roomid.
 func (b *Bucket) Room(rid int32) (room *Room) {
 	b.cLock.RLock()
@@ -124,6 +144,13 @@ func (b *Bucket) DelRoom(rid int32) {
 	}
 	return
 }
+
+func (b *Bucket) BroadcastRoomRedisMsg(roomId int32, op int32, body json.RawMessage) {
+	//body := (json.RawMessage)(msg)
+	var args = proto.BoardcastRoomArg{P: proto.Proto{Operation: op, Body: body}, RoomId: roomId}
+	b.BroadcastRoom(&args);
+}
+
 
 // BroadcastRoom broadcast a message to specified room
 func (b *Bucket) BroadcastRoom(arg *proto.BoardcastRoomArg) {

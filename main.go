@@ -6,20 +6,23 @@ import (
 )
 
 var (
-	DefaultServer    *Server
-	DefaultSeq       *Sequence
+	DefaultServer *Server
+	DefaultSeq    *Sequence
 )
 
 func main() {
 	maxproc := runtime.NumCPU()
 	runtime.GOMAXPROCS(maxproc)
-	perf.Init([]string(PPROFBIND))
-	// new server
+	
+	//pprof
+	perf.Init(PPROFBIND);
+
+	// init buckets
 	buckets := make([]*Bucket, BUCKETNUM)
 	for i := 0; i < BUCKETNUM; i++ {
 		buckets[i] = NewBucket(BucketOptions{
-			ChannelSize:   BUCKETCHANNEL,
-			RoomSize:      BUCKETROOM,
+			ChannelSize:   CHANNELSIZE,
+			RoomSize:      ROOMSIZE,
 			RoutineAmount: ROUTINEAMOUNT,
 			RoutineSize:   ROUTINESIZE,
 		})
@@ -27,30 +30,25 @@ func main() {
 
 	timer := runtime.NumCPU()
 	round := NewRound(RoundOptions{
-		Reader:       TCPREADER,
-		ReadBuf:      TCPREADBUF,
-		ReadBufSize:  TCPREADBUFSIZE,
-		Writer:       TCPWRITER,
-		WriteBuf:     TCPWRITEBUF,
-		WriteBufSize: TCPWRITEBUFSIZE,
-		Timer:        timer,
-		TimerSize:    TIMERSIZE,
+		Timer:     timer,
+		TimerSize: TIMERSIZE,
 	})
 
+	// new server
 	DefaultServer = NewServer(buckets, round, ServerOptions{
 		CliProto:         CLIPROTO,
 		SvrProto:         SVRPROTO,
 		HandshakeTimeout: HANDSHAKETIMEOUT,
-		TCPKeepalive:     TCPKEEPALIVE,
-		TCPRcvbuf:        TCPRCVBUF,
-		TCPSndbuf:        TCPSNDBUF,
-	})
+	});
 	//序列
 	DefaultSeq = NewSequence();
 	// websocket comet
-	if err := InitWebsocket([]string(WEBSOCKETBIND)); err != nil {
+	if err := InitWebsocket(); err != nil {
 		panic(err)
 	}
+
+	//sub
+	go InitSubscribe();
 
 	// block until a signal is received.
 	InitSignal()
